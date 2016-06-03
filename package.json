@@ -1,0 +1,20 @@
+{
+  "name": "4sq-friends-cralwer",
+  "version": "0.0.1",
+  "author": "crazyboycjr",
+  "description": "A script which can fetch the whole graph of foursquare friends relations",
+  "license": "MIT",
+  "engines": {
+    "node": "latest"
+  },
+  "bugs": {
+    "email": "crazyboycjr@gmail.com"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "co": "~4.6.0"
+  },
+  "main": "index.js"
+}
