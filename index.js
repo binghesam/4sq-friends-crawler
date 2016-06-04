@@ -141,7 +141,7 @@ co(function *() {
 	let queue = [];
 	let inque = {};
 	let userIds = yield readUserFile();;
-	const concurNum = 500;
+	const concurNum = 100;
 
 	for (let i in userIds) {
 		if (!done[userIds[i]] && !inque[userIds[i]]) {
