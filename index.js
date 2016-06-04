@@ -10,14 +10,20 @@ const readline = require('readline');
 var logFile = 'done.txt';
 var userFile = 'users.txt';
 var dataFile = 'data.txt';
+var done = '';
 
 function prefixZero(x) {
 	let y = x.toString();
-	if (x < 10) return "0" + y;
+	if (x < 10) return '0' + y;
 	return y;
 }
 
 function getReadStream(filename) {
+	try {
+		fs.statSync(filename);
+	} catch (e) {
+		fs.writeFileSync(filename, '', { flags: 'a' });
+	}
 	return new Promise((resolve, reject) => {
 		let readStream = fs.createReadStream(filename);
 		readStream.on('error', (e) => reject(e));
@@ -83,45 +89,80 @@ function getFollowing(userId) {
 				for (let item of response.following.items)
 					ids.push(item.user.id);
 			}
-			let dataStream = fs.createWriteStream(dataFile, { flags: 'a' });
-			dataStream.write(userId + ' ' + ids.length);
-			for (let id of ids)
-				dataStream.write(' ' + id);
-			dataStream.end('\n');
 
+			let dataStream = fs.createWriteStream(dataFile, { flags: 'a' });
+			let str = userId + ' ' + ids.length;
+			for (let id of ids)
+				str += ' ' + id;
+			dataStream.write(str + '\n');
+			dataStream.end();
+
+			done[userId] = true;
 			let logStream = fs.createWriteStream(logFile, { flags : 'a' });
-			logStream.write(userId);
-			logStream.end('\n');
+			logStream.write(userId + '\n');
+			console.log(userId);
+			logStream.end();
 		}
 	});
 }
 
+function readUserFile() {
+	return new Promise((resolve, reject) => {
+		co(function *() {
+			let userStream = yield getReadStream(userFile);
+			let rd = readline.createInterface({ input: userStream });
+			let userIds = [];
+			rd.on('line', (line) => {
+				if (!done[line]) userIds.push(line);
+			});
+			rd.on('close', () => {
+				console.log('' + userIds.length + ' left in queue.');
+				console.log(userIds);
+				resolve(userIds);
+			});
+		}).catch((e) => reject(e));
+	});
+}
+
+
+function wait(time) {
+	return new Promise((resolve) => {
+		co(function *() {
+			setTimeout(resolve, time);
+		});
+	});
+}
+
 co(function *() {
-	let done = yield readDoneFile();
+	done = yield readDoneFile();
 	console.log(done);
-	let queue = [];
 	let userStream = yield getReadStream(userFile);
 	let rd = readline.createInterface({ input: userStream });
-	rd.on('line', (line) => {
-		console.log(line);
-		if (queue.length >= 10) {
-			console.log('gethere');
-			co(function *() {
-				console.log(yield Promise.all(queue));
-				queue.length = 0;
-			});
-		} else {
-			if (!done[line])
-				queue.push(getFollowing(line));
-		}
-	});
-	rd.on('close', () => {
-		console.log('' + queue.length + ' left in queue.');
-		co(function *() {
-			console.log(yield Promise.all(queue));
-		});
+	let queue = [];
+	/*
+	let start = new Date;
+	for (let i = 1; i <= 3; i++) {
+		let queue = new Array;
 		queue.length = 0;
-	});
+		queue.push(wait(1000));
+		queue.push(wait(2000));
+		queue.push(wait(3000));
+		yield Promise.all(queue);
+		console.log(new Date - start);
+	}
+	*/
+	let userIds = yield readUserFile();;
+	for (let i in userIds) {
+		queue.push(getFollowing(userIds[i]));
+		if (i % 3 == 3 - 1) {
+			let start = new Date;
+			console.log(queue.length);
+			console.log('Start time: ' + start);
+			yield Promise.all(queue);
+			queue.length = 0;
+			console.log('End time: ' + new Date);
+		}
+	}
 });
 
 function onerror(err)  {

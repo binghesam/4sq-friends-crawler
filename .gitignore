@@ -1,2 +1,6 @@
 node_modules
+proxychains.conf
+done.txt
+data.txt
+users.txt
 *~
