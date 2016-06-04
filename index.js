@@ -65,7 +65,7 @@ function makequery(param) {
 				resolve(JSON.parse(data));
 			});
 		}).on('error', reject);
-		request.setTimeout(5000, () => { console.log('5000ms time out'); resolve({}); });
+		request.setTimeout(5000, () => { console.log('5000ms time out'); reject(); });
 	});
 }
 
