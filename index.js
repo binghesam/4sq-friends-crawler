@@ -58,24 +58,31 @@ function makequery(param) {
 	//console.log(url);
 	console.log('User: ' + param.id + ', afterMarker: ', param.afterMarker ? param.afterMarker : '');
 	return new Promise((resolve, reject) => {
-		https.get(url, (res) => {
+		let request = https.get(url, (res) => {
 			let data = '';
 			res.on('data', (chunk) => data += chunk);
 			res.on('end', () => {
 				resolve(JSON.parse(data));
 			});
-			res.setTimeout(5000, resolve);
-		}).on('error', (e) => { console.log(e); reject(e); });
+		}).on('error', reject);
+		request.setTimeout(5000, () => { console.log('5000ms time out'); resolve({}); });
 	});
 }
 
 function getFollowing(userId) {
 	return co(function *() {
-		let data = yield makequery({
-			id: userId,
-			afterMarker: '',
-		});
-		if (data.meta.code === 200) {
+		let data;
+		try {
+			data = yield makequery({
+				id: userId,
+				afterMarker: '',
+			});
+		} catch (e) {
+			//
+			console.log(e);
+			return;
+		}
+		if (data && data.meta && data.meta.code === 200) {
 			//console.log(JSON.stringify(data));
 			let response = data.response;
 			let ids = [];
@@ -86,6 +93,7 @@ function getFollowing(userId) {
 					id: userId,
 					afterMarker: response.trailingMarker,
 				});
+				if (!(data && data.meta && data.meta.code === 200)) return;
 				response = data.response;
 				for (let item of response.following.items)
 					ids.push(item.user.id);
@@ -104,7 +112,7 @@ function getFollowing(userId) {
 			console.log(userId);
 			logStream.end();
 		} else {
-			console.log('userId: ' + userId + ', statusCode: ' + data.meta.code);
+			console.log('userId: ' + userId + ', statusCode: ' + data ? data.meta ? data.meta.code : '' : '');
 		}
 	});
 }
@@ -162,3 +170,7 @@ co(function *() {
 function onerror(err)  {
 	console.error(err.stack);
 }
+process.on('uncaughtException', e => console.error(e.stack));
+process.on('unhandledRejection', (reason, p) => {
+	console.log('Unhandled Rejection at: Promise ', p, ' reason: ', reason);
+});
