@@ -56,6 +56,7 @@ function makequery(param) {
 	param['oauth_token'] = 'QEJ4AQPTMMNB413HGNZ5YDMJSHTOHZHMLZCAQCCLXIX41OMP';
 	let url = 'https://api.foursquare.com/v2/users/' + param.id + '/following?' + querystring.stringify(param);
 	//console.log(url);
+	console.log('User: ' + param.id + ', afterMarker: ', param.afterMarker ? param.afterMarker : '');
 	return new Promise((resolve, reject) => {
 		https.get(url, (res) => {
 			let data = '';
@@ -117,7 +118,7 @@ function readUserFile() {
 			});
 			rd.on('close', () => {
 				console.log('' + userIds.length + ' left in queue.');
-				console.log(userIds);
+				//console.log(userIds);
 				resolve(userIds);
 			});
 		}).catch((e) => reject(e));
@@ -136,25 +137,18 @@ function wait(time) {
 co(function *() {
 	done = yield readDoneFile();
 	console.log(done);
-	let userStream = yield getReadStream(userFile);
-	let rd = readline.createInterface({ input: userStream });
+
 	let queue = [];
-	/*
-	let start = new Date;
-	for (let i = 1; i <= 3; i++) {
-		let queue = new Array;
-		queue.length = 0;
-		queue.push(wait(1000));
-		queue.push(wait(2000));
-		queue.push(wait(3000));
-		yield Promise.all(queue);
-		console.log(new Date - start);
-	}
-	*/
+	let inque = {};
 	let userIds = yield readUserFile();;
+	const concurNum = 500;
+
 	for (let i in userIds) {
-		queue.push(getFollowing(userIds[i]));
-		if (i % 3 == 3 - 1) {
+		if (!done[userIds[i]] && !inque[userIds[i]]) {
+			queue.push(getFollowing(userIds[i]));
+			inque[userIds[i]] = true;
+		}
+		if (i % concurNum == concurNum - 1) {
 			let start = new Date;
 			console.log(queue.length);
 			console.log('Start time: ' + start);
