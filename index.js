@@ -64,8 +64,8 @@ function makequery(param) {
 			res.on('end', () => {
 				resolve(JSON.parse(data));
 			});
-			res.on('error', (e) => reject(e));
-		}).on('error', (e) => reject(e));
+			res.setTimeout(5000, resolve);
+		}).on('error', (e) => { console.log(e); reject(e); });
 	});
 }
 
@@ -103,6 +103,8 @@ function getFollowing(userId) {
 			logStream.write(userId + '\n');
 			console.log(userId);
 			logStream.end();
+		} else {
+			console.log('userId: ' + userId + ', statusCode: ' + data.meta.code);
 		}
 	});
 }
@@ -126,11 +128,9 @@ function readUserFile() {
 }
 
 
-function wait(time) {
+function timeouter(time) {
 	return new Promise((resolve) => {
-		co(function *() {
-			setTimeout(resolve, time);
-		});
+		setTimeout(resolve('Timeout!'), time);
 	});
 }
 
@@ -150,7 +150,7 @@ co(function *() {
 		}
 		if (i % concurNum == concurNum - 1) {
 			let start = new Date;
-			console.log(queue.length);
+			console.log('queue.length: ' + queue.length);
 			console.log('Start time: ' + start);
 			yield Promise.all(queue);
 			queue.length = 0;
