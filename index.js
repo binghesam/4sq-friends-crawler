@@ -37,7 +37,12 @@ function readDoneFile() {
 			let readStream = yield getReadStream(logFile);
 			let rd = readline.createInterface({ input: readStream });
 			let done = {};
-			rd.on('line', (line) => done[line] = true);
+			let count = 0;
+			rd.on('line', (line) => {
+				done[line] = true;
+				if ((++count & 65535) === 65535)
+					console.log(count);
+			});
 			rd.on('close', () => resolve(done));
 		}).catch(onerror);
 	});
@@ -144,7 +149,7 @@ function timeouter(time) {
 
 co(function *() {
 	done = yield readDoneFile();
-	console.log(done);
+	//console.log(done);
 
 	let queue = [];
 	let inque = {};
